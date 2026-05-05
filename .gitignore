@@ -1,0 +1,14 @@
+# Runtime logs
+storage/*.log
+
+# Local environment overrides
+.env
+
+# Dependencies and IDE files
+vendor/
+.idea/
+.vscode/
+
+# OS metadata
+.DS_Store
+Thumbs.db
