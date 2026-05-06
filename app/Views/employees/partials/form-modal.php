@@ -25,11 +25,20 @@
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Tuổi</label>
-                        <input class="form-control" name="age" type="number" min="18" max="80" required>
+                        <input class="form-control" name="age" type="text" inputmode="numeric" required>
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Ngày bắt đầu</label>
-                        <input class="form-control" name="start_date" type="date" required>
+                        <input
+                            class="form-control"
+                            name="start_date"
+                            type="text"
+                            inputmode="numeric"
+                            placeholder="dd/mm/yyyy"
+                            pattern="^(0[1-9]|[12][0-9]|3[01])/(0[1-9]|1[0-2])/[0-9]{4}$"
+                            title="Nhập ngày theo định dạng dd/mm/yyyy"
+                            required
+                        >
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Lương</label>

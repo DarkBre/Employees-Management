@@ -6,10 +6,6 @@
                 <li class="breadcrumb-item active">Tạo tài khoản để truy cập hệ thống quản lí nhân viên</li>
             </ol>
         </div>
-        <a class="btn btn-outline-primary" href="/login">
-            <i class="fas fa-sign-in-alt me-1"></i>
-            Đăng nhập
-        </a>
     </div>
 
     <div class="card mb-4">
@@ -44,7 +40,6 @@
                 </div>
 
                 <div class="d-flex align-items-center justify-content-end gap-2 mt-4">
-                    <a class="btn btn-secondary" href="/login">Huỷ</a>
                     <button class="btn btn-primary" type="submit">
                         <i class="fas fa-save me-1"></i>
                         Đăng kí

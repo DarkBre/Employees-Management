@@ -4,6 +4,7 @@ namespace App\Controllers;
 
 use App\Core\Controller;
 use App\Models\Employee;
+use DateTime;
 
 class EmployeeController extends Controller
 {
@@ -57,8 +58,20 @@ class EmployeeController extends Controller
             'position' => trim($_POST['position'] ?? ''),
             'office' => trim($_POST['office'] ?? ''),
             'age' => (int) ($_POST['age'] ?? 0),
-            'start_date' => trim($_POST['start_date'] ?? ''),
+            'start_date' => $this->normalizeDateForDatabase($_POST['start_date'] ?? ''),
             'salary' => trim($_POST['salary'] ?? ''),
         ];
+    }
+
+    private function normalizeDateForDatabase(string $date): string
+    {
+        $date = trim($date);
+        $parsedDate = DateTime::createFromFormat('d/m/Y', $date);
+
+        if (!$parsedDate || $parsedDate->format('d/m/Y') !== $date) {
+            return $date;
+        }
+
+        return $parsedDate->format('Y-m-d');
     }
 }

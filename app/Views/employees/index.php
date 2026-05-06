@@ -1,3 +1,17 @@
+<?php
+function formatEmployeeDate(?string $date): string
+{
+    $date = (string) $date;
+    $parsedDate = DateTime::createFromFormat('Y-m-d', $date);
+
+    if (!$parsedDate) {
+        return $date;
+    }
+
+    return $parsedDate->format('d/m/Y');
+}
+?>
+
 <div class="container-fluid px-4">
     <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3 mt-4 mb-4">
         <div>
@@ -44,7 +58,7 @@
                             <td><?= htmlspecialchars($employee['position']) ?></td>
                             <td><?= htmlspecialchars($employee['office']) ?></td>
                             <td><?= (int) $employee['age'] ?></td>
-                            <td><?= htmlspecialchars($employee['start_date']) ?></td>
+                            <td><?= htmlspecialchars(formatEmployeeDate($employee['start_date'])) ?></td>
                             <td><?= htmlspecialchars($employee['salary']) ?></td>
                             <td>
                                 <div class="d-flex justify-content-center gap-2">
@@ -58,7 +72,7 @@
                                         data-position="<?= htmlspecialchars($employee['position']) ?>"
                                         data-office="<?= htmlspecialchars($employee['office']) ?>"
                                         data-age="<?= (int) $employee['age'] ?>"
-                                        data-start-date="<?= htmlspecialchars($employee['start_date']) ?>"
+                                        data-start-date="<?= htmlspecialchars(formatEmployeeDate($employee['start_date'])) ?>"
                                         data-salary="<?= htmlspecialchars($employee['salary']) ?>"
                                     >
                                         <i class="fas fa-edit"></i>

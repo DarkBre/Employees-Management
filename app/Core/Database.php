@@ -15,38 +15,59 @@ class Database
             return self::$connection;
         }
 
-        self::initializeDatabase();
-
         try {
             self::$connection = new PDO(self::databaseDsn(), DB_USER, DB_PASS, self::options());
         } catch (PDOException $exception) {
-            self::renderConnectionError($exception->getMessage());
+            self::createDatabaseIfPossible();
+            try {
+                self::$connection = new PDO(self::databaseDsn(), DB_USER, DB_PASS, self::options());
+            } catch (PDOException $retryException) {
+                self::renderConnectionError($retryException->getMessage());
+            }
         }
+
+        self::initializeTables();
 
         return self::$connection;
     }
 
-    private static function initializeDatabase(): void
+    private static function createDatabaseIfPossible(): void
     {
         try {
             $pdo = new PDO(self::serverDsn(), DB_USER, DB_PASS, self::options());
             $databaseName = str_replace('`', '``', DB_NAME);
             $charset = DB_CHARSET;
-
             $pdo->exec("CREATE DATABASE IF NOT EXISTS `{$databaseName}` CHARACTER SET {$charset} COLLATE {$charset}_unicode_ci");
-            $pdo->exec("USE `{$databaseName}`");
-            $pdo->exec(
-                'CREATE TABLE IF NOT EXISTS users (
-                    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-                    name VARCHAR(120) NOT NULL,
-                    email VARCHAR(190) NOT NULL UNIQUE,
-                    password VARCHAR(255) NOT NULL,
-                    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
-                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci'
-            );
         } catch (PDOException $exception) {
-            self::renderConnectionError($exception->getMessage());
+            // Database online thường không cho quyền CREATE DATABASE; lần retry sẽ báo lỗi rõ ràng nếu DB chưa tồn tại.
         }
+    }
+
+    private static function initializeTables(): void
+    {
+        self::$connection->exec(
+            'CREATE TABLE IF NOT EXISTS users (
+                id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+                name VARCHAR(120) NOT NULL,
+                email VARCHAR(190) NOT NULL UNIQUE,
+                password VARCHAR(255) NOT NULL,
+                created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci'
+        );
+
+        self::$connection->exec(
+            'CREATE TABLE IF NOT EXISTS employees (
+                id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+                name VARCHAR(120) NOT NULL,
+                position VARCHAR(120) NOT NULL,
+                office VARCHAR(120) NOT NULL,
+                age TINYINT UNSIGNED NOT NULL,
+                start_date DATE NOT NULL,
+                salary VARCHAR(50) NOT NULL,
+                created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                updated_at DATETIME NULL DEFAULT NULL
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci'
+        );
     }
 
     private static function serverDsn(): string
@@ -61,11 +82,17 @@ class Database
 
     private static function options(): array
     {
-        return [
+        $options = [
             PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
             PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
             PDO::ATTR_EMULATE_PREPARES => false,
         ];
+
+        if (DB_SSL_CA !== '' && defined('PDO::MYSQL_ATTR_SSL_CA')) {
+            $options[PDO::MYSQL_ATTR_SSL_CA] = DB_SSL_CA;
+        }
+
+        return $options;
     }
 
     private static function renderConnectionError(string $detail): void
@@ -91,11 +118,11 @@ class Database
                             Không thể kết nối cơ sở dữ liệu
                         </div>
                         <div class="card-body">
-                            <p class="mb-3">Web cần MySQL để đăng nhập và đăng kí tài khoản.</p>
+                            <p class="mb-3">Web cần MySQL để đăng nhập, đăng kí và quản lí nhân viên.</p>
                             <ol class="mb-3">
-                                <li>Mở <strong>XAMPP Control Panel</strong>.</li>
-                                <li>Bấm <strong>Start</strong> ở dòng <strong>MySQL</strong>.</li>
-                                <li>Tải lại trang web bằng <strong>Ctrl + F5</strong>.</li>
+                                <li>Kiểm tra MySQL hoặc database online đang hoạt động.</li>
+                                <li>Kiểm tra cấu hình DB trong <code>config/config.php</code> hoặc biến môi trường.</li>
+                                <li>Nếu dùng XAMPP, bấm <strong>Start</strong> ở dòng <strong>MySQL</strong>.</li>
                             </ol>
                             <p class="mb-1"><strong>Cấu hình hiện tại:</strong></p>
                             <ul class="mb-3">

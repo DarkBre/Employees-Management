@@ -2,64 +2,99 @@
 
 namespace App\Models;
 
-class Employee extends JsonModel
-{
-    protected string $fileName = 'employees.json';
+use App\Core\Database;
+use PDO;
 
+class Employee
+{
     public function all(): array
     {
-        $employees = $this->allRecords();
-        if (empty($employees)) {
-            $employees = $this->defaultEmployees();
-            $this->saveRecords($employees);
-        }
+        $this->seedIfEmpty();
 
-        return $employees;
+        $statement = Database::connection()->query(
+            'SELECT id, name, position, office, age, start_date, salary
+             FROM employees
+             ORDER BY id ASC'
+        );
+
+        return $statement->fetchAll(PDO::FETCH_ASSOC);
     }
 
     public function find(int $id): ?array
     {
-        foreach ($this->all() as $employee) {
-            if ((int) $employee['id'] === $id) {
-                return $employee;
-            }
-        }
+        $statement = Database::connection()->prepare(
+            'SELECT id, name, position, office, age, start_date, salary
+             FROM employees
+             WHERE id = :id
+             LIMIT 1'
+        );
+        $statement->execute(['id' => $id]);
+        $employee = $statement->fetch(PDO::FETCH_ASSOC);
 
-        return null;
+        return $employee ?: null;
     }
 
     public function create(array $data): void
     {
-        $employees = $this->all();
-        $data['id'] = $this->nextId($employees);
-        $employees[] = $data;
-        $this->saveRecords($employees);
+        $statement = Database::connection()->prepare(
+            'INSERT INTO employees (name, position, office, age, start_date, salary)
+             VALUES (:name, :position, :office, :age, :start_date, :salary)'
+        );
+
+        $statement->execute($this->bindData($data));
     }
 
     public function update(int $id, array $data): void
     {
-        $employees = array_map(function (array $employee) use ($id, $data) {
-            if ((int) $employee['id'] === $id) {
-                return array_merge($employee, $data, ['id' => $id]);
-            }
+        $statement = Database::connection()->prepare(
+            'UPDATE employees
+             SET name = :name,
+                 position = :position,
+                 office = :office,
+                 age = :age,
+                 start_date = :start_date,
+                 salary = :salary,
+                 updated_at = NOW()
+             WHERE id = :id'
+        );
 
-            return $employee;
-        }, $this->all());
-
-        $this->saveRecords($employees);
+        $statement->execute(array_merge($this->bindData($data), ['id' => $id]));
     }
 
     public function delete(int $id): void
     {
-        $employees = array_filter($this->all(), fn (array $employee) => (int) $employee['id'] !== $id);
-        $this->saveRecords($employees);
+        $statement = Database::connection()->prepare('DELETE FROM employees WHERE id = :id');
+        $statement->execute(['id' => $id]);
+    }
+
+    private function seedIfEmpty(): void
+    {
+        $count = (int) Database::connection()->query('SELECT COUNT(*) FROM employees')->fetchColumn();
+        if ($count > 0) {
+            return;
+        }
+
+        foreach ($this->defaultEmployees() as $employee) {
+            $this->create($employee);
+        }
+    }
+
+    private function bindData(array $data): array
+    {
+        return [
+            'name' => trim($data['name'] ?? ''),
+            'position' => trim($data['position'] ?? ''),
+            'office' => trim($data['office'] ?? ''),
+            'age' => (int) ($data['age'] ?? 0),
+            'start_date' => trim($data['start_date'] ?? ''),
+            'salary' => trim($data['salary'] ?? ''),
+        ];
     }
 
     private function defaultEmployees(): array
     {
         return [
             [
-                'id' => 1,
                 'name' => 'Nguyễn Văn An',
                 'position' => 'Nhân viên kinh doanh',
                 'office' => 'Hà Nội',
@@ -68,7 +103,6 @@ class Employee extends JsonModel
                 'salary' => '12.000.000',
             ],
             [
-                'id' => 2,
                 'name' => 'Trần Thị Bình',
                 'position' => 'Kế toán viên',
                 'office' => 'Đà Nẵng',

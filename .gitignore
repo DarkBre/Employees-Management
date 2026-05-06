@@ -1,5 +1,5 @@
 # Runtime logs
-storage/*.log
+*.log
 
 # Local environment overrides
 .env
@@ -12,3 +12,6 @@ vendor/
 # OS metadata
 .DS_Store
 Thumbs.db
+
+# Generated documents
+output/
