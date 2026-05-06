@@ -1,6 +1,6 @@
 # Employees Management
 
-Ứng dụng quản lí nhân viên cơ bản viết bằng PHP MVC, dùng MySQL cho đăng nhập/đăng kí và file JSON cho dữ liệu nhân viên mẫu.
+Trang web quản lí nhân viên cơ bản viết bằng PHP MVC, dùng MySQL cho đăng nhập/đăng kí và file JSON cho dữ liệu nhân viên mẫu.
 
 ## Yêu cầu
 
