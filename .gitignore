@@ -1,5 +1,6 @@
 # Runtime logs
 *.log
+.runtime/
 
 # Local environment overrides
 .env

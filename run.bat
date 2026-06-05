@@ -6,6 +6,12 @@ title Employees Management - Run
 set "ROOT=%~dp0"
 set "APP_PORT=8000"
 set "APP_URL=http://127.0.0.1:%APP_PORT%"
+set "MYSQL_HOST=127.0.0.1"
+set "MYSQL_PORT=3306"
+set "MYSQL_USER=root"
+set "MYSQL_PASS="
+set "MYSQL_PASS_ARG="
+set "RUNTIME_DIR=%ROOT%.runtime"
 
 cd /d "%ROOT%"
 
@@ -95,9 +101,18 @@ timeout /t 2 /nobreak >nul
 exit /b 0
 
 :start_mysql
+call :mysql_ping
+if not errorlevel 1 (
+    echo MySQL/port %MYSQL_PORT% is ready.
+    exit /b 0
+)
+
 netstat -ano | findstr /R /C:":3306 .*LISTENING" >nul
 if not errorlevel 1 (
-    echo MySQL/port 3306 is already running.
+    echo MySQL/port 3306 is busy but root access is not available.
+    call :find_free_mysql_port
+    if errorlevel 1 exit /b 1
+    call :start_xampp_mysql
     exit /b 0
 )
 
@@ -108,28 +123,66 @@ if not exist "%MYSQLD_EXE%" (
     exit /b 1
 )
 
-echo Starting MySQL...
+set "MYSQL_PORT=3306"
+call :start_xampp_mysql
+exit /b 0
+
+:start_xampp_mysql
+echo Starting MySQL on port %MYSQL_PORT%...
 pushd "%XAMPP_DIR%"
-start "XAMPP MySQL" /min "mysql\bin\mysqld.exe" --defaults-file="mysql\bin\my.ini" --standalone
+if "%MYSQL_PORT%"=="3306" (
+    start "XAMPP MySQL" /min "mysql\bin\mysqld.exe" --defaults-file="mysql\bin\my.ini" --standalone
+) else (
+    call :make_mysql_ini
+    start "XAMPP MySQL %MYSQL_PORT%" /min "mysql\bin\mysqld.exe" --defaults-file="%MYSQL_TEMP_INI%" --standalone
+)
 popd
 exit /b 0
 
+:find_free_mysql_port
+for %%P in (3307 3308 3309 3310) do (
+    netstat -ano | findstr /R /C:":%%P .*LISTENING" >nul
+    if errorlevel 1 (
+        set "MYSQL_PORT=%%P"
+        exit /b 0
+    )
+)
+
+echo [ERROR] Ports 3306-3310 are busy. Free one MySQL port and run again.
+pause
+exit /b 1
+
+:make_mysql_ini
+if not exist "%RUNTIME_DIR%" mkdir "%RUNTIME_DIR%" >nul 2>nul
+set "MYSQL_TEMP_INI=%RUNTIME_DIR%\mysql-%MYSQL_PORT%.ini"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$source = '%XAMPP_DIR%\mysql\bin\my.ini'; $target = '%MYSQL_TEMP_INI%'; (Get-Content -LiteralPath $source) -replace 'port\s*=\s*3306', 'port=%MYSQL_PORT%' | Set-Content -LiteralPath $target -Encoding ASCII"
+if errorlevel 1 (
+    echo [ERROR] Cannot create temporary MySQL config.
+    pause
+    exit /b 1
+)
+exit /b 0
+
 :wait_mysql
-echo Waiting for MySQL...
+echo Waiting for MySQL on port %MYSQL_PORT%...
 for /l %%I in (1,1,25) do (
-    "%MYSQL_EXE%" -uroot -e "SELECT 1" >nul 2>nul
+    call :mysql_ping
     if not errorlevel 1 goto mysql_ready
     timeout /t 1 /nobreak >nul
 )
 
 echo [ERROR] MySQL is not ready.
-echo If XAMPP root has a password, update config\config.php and import database manually.
+echo If another MySQL is locking XAMPP data, stop it or ask for the MySQL password.
 pause
 exit /b 1
 
 :mysql_ready
 echo MySQL is ready.
 exit /b 0
+
+:mysql_ping
+"%MYSQL_EXE%" --protocol=tcp -h%MYSQL_HOST% -P%MYSQL_PORT% -u%MYSQL_USER% %MYSQL_PASS_ARG% -e "SELECT 1" >nul 2>nul
+exit /b %errorlevel%
 
 :prepare_database
 if not exist "%ROOT%database.sql" (
@@ -138,10 +191,10 @@ if not exist "%ROOT%database.sql" (
 )
 
 echo Preparing database from database.sql...
-"%MYSQL_EXE%" -uroot < "%ROOT%database.sql"
+"%MYSQL_EXE%" --protocol=tcp -h%MYSQL_HOST% -P%MYSQL_PORT% -u%MYSQL_USER% %MYSQL_PASS_ARG% < "%ROOT%database.sql"
 if errorlevel 1 (
     echo [ERROR] Cannot import database.sql.
-    echo Check MySQL root password or phpMyAdmin configuration.
+    echo Check MySQL user, password, port, or phpMyAdmin configuration.
     pause
     exit /b 1
 )
@@ -157,6 +210,15 @@ if not errorlevel 1 (
 )
 
 echo Starting PHP server on %APP_URL% ...
+set "DB_HOST=%MYSQL_HOST%"
+set "DB_PORT=%MYSQL_PORT%"
+set "DB_USER=%MYSQL_USER%"
+set "DB_NAME=employee_manager"
+if defined MYSQL_PASS (
+    set "DB_PASS=%MYSQL_PASS%"
+) else (
+    set "DB_PASS="
+)
 start "Employees Management PHP Server" /min "%PHP_EXE%" -S 127.0.0.1:%APP_PORT% -t "%ROOT%public" "%ROOT%public\index.php"
 timeout /t 2 /nobreak >nul
 exit /b 0
