@@ -1,4 +1,5 @@
 @echo off
+chcp 65001 >nul
 setlocal EnableExtensions
 
 title Employees Management - Run
@@ -12,6 +13,7 @@ set "MYSQL_PORT="
 set "MYSQL_USER=root"
 set "MYSQL_PASS="
 set "MYSQL_PASS_ARG="
+set "MYSQL_CHARSET=--default-character-set=utf8mb4"
 set "DB_NAME=employee_manager"
 set "RUNTIME_DIR=%ROOT%.runtime"
 
@@ -215,7 +217,7 @@ for /l %%I in (1,1,20) do (
 exit /b 1
 
 :mysql_ping
-"%MYSQL_EXE%" --protocol=tcp -h%MYSQL_HOST% -P%MYSQL_PORT% -u%MYSQL_USER% %MYSQL_PASS_ARG% -e "SELECT 1" >nul 2>nul
+"%MYSQL_EXE%" %MYSQL_CHARSET% --protocol=tcp -h%MYSQL_HOST% -P%MYSQL_PORT% -u%MYSQL_USER% %MYSQL_PASS_ARG% -e "SELECT 1" >nul 2>nul
 exit /b %errorlevel%
 
 :prepare_database
@@ -225,7 +227,7 @@ if not exist "%ROOT%database.sql" (
 )
 
 echo Preparing database on MySQL port %MYSQL_PORT%...
-"%MYSQL_EXE%" --protocol=tcp -h%MYSQL_HOST% -P%MYSQL_PORT% -u%MYSQL_USER% %MYSQL_PASS_ARG% < "%ROOT%database.sql"
+"%MYSQL_EXE%" %MYSQL_CHARSET% --protocol=tcp -h%MYSQL_HOST% -P%MYSQL_PORT% -u%MYSQL_USER% %MYSQL_PASS_ARG% < "%ROOT%database.sql"
 if errorlevel 1 (
     echo [ERROR] Cannot import database.sql.
     echo Check MySQL user, password, port, or phpMyAdmin configuration.
